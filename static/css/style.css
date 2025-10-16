@@ -1,0 +1,55 @@
+/* ---------- General Theme ---------- */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  border-radius: 10px;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+  transform: scale(1.02);
+}
+
+/* ---------- Cards & Forms ---------- */
+.card, .login-box, .signup-box, .change-box {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Table Styles ---------- */
+.table-wrapper {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table thead th {
+  background-color: #343a40;
+  color: white;
+}
+
+td[contenteditable="true"] {
+  background-color: #fff8dc;
+  cursor: text;
+}
+
+/* ---------- Navbar / Top Bar ---------- */
+.top-bar a {
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* ---------- Alerts ---------- */
+.alert {
+  border-radius: 10px;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+}

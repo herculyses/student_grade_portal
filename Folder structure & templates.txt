@@ -1,0 +1,13 @@
+app.py
+requirements.txt
+.gitignore
+README.md
+static/
+  ├── css/style.css
+  └── js/script.js
+templates/
+  ├── login.html
+  ├── signup.html
+  ├── dashboard.html
+  └── change_password.html
+database.db

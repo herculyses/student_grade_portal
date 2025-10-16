@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body { background:#f8f9fa; }
+    th, td { text-align:center; vertical-align:middle; }
+    td[contenteditable="true"] { background-color:#fff8dc; }
+    .table-wrapper { overflow-x:auto; }
+    .top-bar { display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px; }
+    .search-filter { margin-bottom:10px; }
+  </style>
+</head>
+<body class="p-3">
+<div class="container">
+
+  <div class="top-bar">
+    <a href="{{ url_for('change_password') }}" class="btn btn-warning btn-sm">Change Password</a>
+    <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Logout</a>
+  </div>
+
+  <h2 class="mb-3">Dashboard ({{ role.capitalize() }})</h2>
+
+  {% if role == 'instructor' %}
+  <!-- CSV Upload -->
+  <form method="post" enctype="multipart/form-data" class="mb-3">
+    <div class="row g-2 align-items-center">
+      <div class="col-auto">
+        <input type="file" name="csv_file" class="form-control form-control-sm">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Upload CSV</button>
+        <a href="{{ url_for('download_template') }}" class="btn btn-info btn-sm">Download Template</a>
+      </div>
+    </div>
+  </form>
+  {% endif %}
+
+  <!-- Filter/Search -->
+  <div class="row g-2 align-items-center search-filter">
+    <div class="col-auto">
+      <input type="text" id="search_input" class="form-control form-control-sm" placeholder="Search by Student ID or Name">
+    </div>
+    <div class="col-auto">
+      <select id="subject_filter" class="form-select form-select-sm">
+        <option value="">All Subjects</option>
+        {% for sub in subjects %}
+          <option value="{{ sub['subject'] }}" {% if selected_subject == sub['subject'] %}selected{% endif %}>{{ sub['subject'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table table-bordered table-striped table-hover align-middle text-center">
+      <thead class="table-dark">
+        <tr>
+          {% if role == 'instructor' %}<th><input type="checkbox" id="select_all"></th>{% endif %}
+          <th>Student ID</th>
+          <th>Student Name</th>
+          <th>Subject</th>
+          <th>Section</th>
+          <th>Midterm Score</th>
+          <th>Midterm Grade</th>
+          <th>Final Score</th>
+          <th>Final Grade</th>
+          <th>Remark</th>
+        </tr>
+      </thead>
+      <tbody id="grade_table">
+        {% for g in grade_list %}
+        <tr id="row-{{ g['id'] }}" style="background-color: {{ grade_colors.get(g['remark'], '#fff') }};">
+          {% if role == 'instructor' %}<td><input type="checkbox" name="delete_ids" value="{{ g['id'] }}"></td>{% endif %}
+          <td contenteditable="{{ 'true' if role=='instructor' else 'false' }}" class="sid" data-id="{{ g['id'] }}">{{ g['student_id'] }}</td>
+          <td contenteditable="{{ 'true' if role=='instructor' else 'false' }}" class="sname" data-id="{{ g['id'] }}">{{ g['student_name'] }}</td>
+          <td contenteditable="{{ 'true' if role=='instructor' else 'false' }}" class="subj" data-id="{{ g['id'] }}">{{ g['subject'] }}</td>
+          <td contenteditable="{{ 'true' if role=='instructor' else 'false' }}" class="section" data-id="{{ g['id'] }}">{{ g.get('section', '') }}</td>
+          <td contenteditable="{{ 'true' if role=='instructor' else 'false' }}" class="mscore" data-id="{{ g['id'] }}">{{ g['midterm_score'] }}</td>
+          <td contenteditable="{{ 'true' if role=='instructor' else 'false' }}" class="mgrade" data-id="{{ g['id'] }}">{{ g['midterm_grade'] }}</td>
+          <td contenteditable="{{ 'true' if role=='instructor' else 'false' }}" class="fscore" data-id="{{ g['id'] }}">{{ g['final_score'] }}</td>
+          <td contenteditable="{{ 'true' if role=='instructor' else 'false' }}" class="fgrade" data-id="{{ g['id'] }}">{{ g['final_grade'] }}</td>
+          <td class="remark">{{ g['remark'] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if role == 'instructor' %}
+  <div class="mt-2">
+    <button id="save_changes" class="btn btn-success btn-sm">Save Changes</button>
+    <button type="submit" formmethod="post" class="btn btn-danger btn-sm">Delete Selected</button>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+// Select all checkboxes
+$('#select_all').on('click', function() {
+  $('input[name="delete_ids"]').prop('checked', this.checked);
+});
+
+// Save grades via AJAX
+$('#save_changes').click(function(){
+  let data = [];
+  $('tbody tr').each(function(){
+    let row = $(this);
+    let id = row.find('.sid').data('id');
+    data.push({
+      id: id,
+      student_id: row.find('.sid').text().trim(),
+      student_name: row.find('.sname').text().trim(),
+      subject: row.find('.subj').text().trim(),
+      section: row.find('.section').text().trim(),
+      midterm_score: row.find('.mscore').text().trim(),
+      midterm_grade: row.find('.mgrade').text().trim(),
+      final_score: row.find('.fscore').text().trim(),
+      final_grade: row.find('.fgrade').text().trim()
+    });
+  });
+
+  $.ajax({
+    url: '/save_grades',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify(data),
+    success: function(res) {
+      res.updated.forEach(function(u){
+        let row = $('#row-' + u.id);
+        row.find('.remark').text(u.remark);
+        row.css('background-color', u.color);
+      });
+      alert('Grades saved successfully!');
+    },
+    error: function() {
+      alert('Error saving grades.');
+    }
+  });
+});
+
+// Filter grades
+function fetchGrades() {
+  let search = $('#search_input').val();
+  let subject = $('#subject_filter').val();
+  $.get('/filter_grades', { search: search, subject: subject }, function(res){
+    let tbody = '';
+    res.grades.forEach(function(g){
+      tbody += '<tr id="row-'+g.id+'" style="background-color:'+g.color+';">';
+      {% if role == 'instructor' %}
+      tbody += '<td><input type="checkbox" name="delete_ids" value="'+g.id+'"></td>';
+      {% endif %}
+      tbody += '<td contenteditable="{{ "true" if role=="instructor" else "false" }}" class="sid" data-id="'+g.id+'">'+g.student_id+'</td>';
+      tbody += '<td contenteditable="{{ "true" if role=="instructor" else "false" }}" class="sname" data-id="'+g.id+'">'+g.student_name+'</td>';
+      tbody += '<td contenteditable="{{ "true" if role=="instructor" else "false" }}" class="subj" data-id="'+g.id+'">'+g.subject+'</td>';
+      tbody += '<td contenteditable="{{ "true" if role=="instructor" else "false" }}" class="section" data-id="'+g.id+'">'+(g.section || '')+'</td>';
+      tbody += '<td contenteditable="{{ "true" if role=="instructor" else "false" }}" class="mscore" data-id="'+g.id+'">'+g.midterm_score+'</td>';
+      tbody += '<td contenteditable="{{ "true" if role=="instructor" else "false" }}" class="mgrade" data-id="'+g.id+'">'+g.midterm_grade+'</td>';
+      tbody += '<td contenteditable="{{ "true" if role=="instructor" else "false" }}" class="fscore" data-id="'+g.id+'">'+g.final_score+'</td>';
+      tbody += '<td contenteditable="{{ "true" if role=="instructor" else "false" }}" class="fgrade" data-id="'+g.id+'">'+g.final_grade+'</td>';
+      tbody += '<td class="remark">'+g.remark+'</td>';
+      tbody += '</tr>';
+    });
+    $('#grade_table').html(tbody);
+  });
+}
+
+$('#search_input, #subject_filter').on('input change', fetchGrades);
+</script>
+</body>
+</html>
